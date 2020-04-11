@@ -1,0 +1,330 @@
+
+<html>
+<head>
+
+<meta name='viewport' content='width=660 user-scalable=no'>
+<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+
+</head>
+
+<body bgcolor='grey'>
+
+<center>
+<font color='white'>
+
+<canvas id='leinwand' width='640' height='960' style='border:1px solid white; margin:0pt' ontouchstart="touchstart(event)"
+                                                                                          ontouchmove="touchmove(event)"
+                                                                                          ontouchend="touchend(event)"
+                                                                                          onmousedown="touchstart(event)"
+                                                                                          onmousemove="touchmove(event)"
+                                                                                          onmouseup="touchend(event)">
+</canvas>
+
+<br><br>
+Steuerung: Pfeiltasten links/rechts<br>
+oder Berührung linke/rechte Bildhälfte
+
+
+</font>
+</center>
+
+
+
+
+
+<script type='text/javascript'>
+
+document.onkeypress = keypress;
+document.onkeydown = keypress;
+document.onkeyup = keyup;
+
+
+var canvas = document.getElementById('leinwand');
+var ctx = canvas.getContext('2d');
+
+
+var SCR_W = 640;
+var SCR_H = 960;
+
+
+var ballx = 320;
+var bally = SCR_H - 64;
+
+var ballxdir = 5.0;
+var ballydir = -10.0;
+
+
+var playerx = SCR_W / 2;
+var playery = SCR_H - 40;
+
+var PLAYER_SPEED = 10.0;
+
+var playerw = 80;
+var playerh = 20;
+
+var playerxdir = 0.0;
+
+var finished = false;
+
+
+var bricks = [[0, 0, 1, 1, 1, 1, 0, 0],
+              [0, 1, 0, 1, 1, 0, 1, 0],
+              [0, 1, 0, 1, 1, 0, 1, 0],
+              [0, 1, 1, 1, 1, 1, 1, 0],
+              [1, 1, 1, 1, 1, 1, 1, 1],
+              [1, 0, 1, 1, 1, 1, 0, 1],
+              [1, 1, 0, 0, 0, 0, 1, 1],
+              [0, 1, 1, 1, 1, 1, 1, 0],
+              ];
+              
+
+function update()
+{
+    // Bild loeschen
+    ctx.fillStyle = "black";
+    ctx.fillRect(0, 0, SCR_W, SCR_H);
+
+    // Kreis zeichnen
+    ctx.beginPath();
+    ctx.arc(ballx, bally, 8, 0, 2 * Math.PI);
+    ctx.fillStyle = "white";
+    ctx.fill();
+    ctx.strokeStyle = "grey";
+    ctx.stroke(); 
+    
+    // Schlaeger zeichnen
+    ctx.fillStyle = "white";
+    ctx.fillRect(playerx - playerw/2, playery - playerh/2, playerw, playerh);
+
+    // Bricks zeichnen
+    
+    ctx.fillStyle = "green";
+    
+    for(y=0; y<8; y++)
+        for(x=0; x<8; x++)
+            if (bricks[y][x] == 1)
+                ctx.fillRect(x * SCR_W / 8,
+                             y * SCR_H / 2 / 8,
+                             SCR_W / 8 -2,
+                             SCR_H / 2/ 8 -2);
+        
+    // Schlaeger bewegen
+    
+    playerx += playerxdir;
+    
+    // Schlaegerkollision mit Rand
+    
+    if (playerx <= playerw/2)
+        if (playerxdir < 0)
+            playerx = playerw/2;
+            
+    if (playerx >= SCR_W - playerw/2)
+        if (playerxdir > 0)
+            playerx = SCR_W - playerw/2;
+            
+            
+    // Kollision zwischen Schlaeger und Ball
+    
+    if (bally >= playery - 8 && bally <= playery + 8)
+    {
+        //ctx.fillStyle = "red";
+        //ctx.fillRect(0, playery - 8, SCR_W, SCR_H);
+        
+        if (ballx >= playerx - playerw/2 && ballx <= playerx + playerw/2)
+        {
+            ballydir *= -1;
+            ballxdir += playerxdir * 0.1;
+        }
+    }
+    
+    // Ball bewegen x
+    
+    ballx += ballxdir;
+    
+    // Kollision zwischen Ball und Steinen
+    
+    testx = Math.floor(ballx / (SCR_W / 8));
+    testy = Math.floor(bally / (SCR_H / 2 / 8));
+    
+    if (testx < 8 && testy < 8)
+    {
+        if (bricks[testy][testx] == 1)
+        {
+            bricks[testy][testx] = 0;
+            ballxdir *= -1;
+        }
+    }
+    
+    
+    // Ball bewegen y
+    
+    bally += ballydir;
+    
+    // Kollision zwischen Ball und Steinen
+    
+    testx = Math.floor(ballx / (SCR_W / 8));
+    testy = Math.floor(bally / (SCR_H / 2 / 8));
+    
+    if (testx < 8 && testy < 8)
+    {
+        if (bricks[testy][testx] == 1)
+        {
+            bricks[testy][testx] = 0;
+            ballydir *= -1;
+        }
+    }
+    
+    
+    // Ballkollision mit Rand
+    
+    if (ballx <= 8 || ballx >= SCR_W -8)
+        ballxdir *= -1;
+        
+    if (bally <= 8)
+        ballydir *= -1;
+        
+     
+    // Ball flog unten raus
+        
+    if (! finished)
+    {
+        if (bally >= SCR_H)
+        { 
+            ctx.font = "bold 36px Arial";
+            ctx.textAlign = "center";
+            ctx.fillStyle = "#FFFFFF";
+            ctx.fillText("GAME OVER", SCR_W / 2, SCR_H / 2);
+            ctx.font = "bold 18px Arial";
+            ctx.fillText("please refresh page", SCR_W / 2, SCR_H / 2 + 40);
+        }
+    }
+    
+    // ermitteln ob Level geschafft wurde
+    
+    finished = true;
+    for(y=0; y<8; y++)
+        for(x=0; x<8; x++)
+            if (bricks[y][x] == 1)
+                finished = false;
+                
+    if (finished)
+    {
+        ctx.font = "bold 36px Arial";
+        ctx.textAlign = "center";
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fillText("CONGRATULATIONS", SCR_W / 2, SCR_H / 2);
+        ctx.font = "bold 18px Arial";
+        ctx.fillText("please refresh page", SCR_W / 2, SCR_H / 2 + 40);
+    }
+}
+
+
+
+
+
+function keypress(event)
+{
+    if (event.which == 37)  // Pfeil nach links gedrueckt
+        moveLeft();
+
+    if (event.which == 39)  // Pfeil nach rechts gedrueckt
+        moveRight();
+}
+
+function keyup(event)
+{
+    if (event.which == 37)  // Pfeil nach links losgelassen
+        stopLeft();
+
+    if (event.which == 39)  // Pfeil nach rechts losgelassen
+        stopRight();
+}
+
+
+
+
+function moveLeft()
+{
+    playerxdir = -PLAYER_SPEED;
+}
+
+function stopLeft()
+{
+    if (playerxdir < 0)
+        playerxdir = 0;
+}
+
+function moveRight()
+{
+    playerxdir = PLAYER_SPEED;
+}
+
+function stopRight()
+{
+    if (playerxdir > 0)
+        playerxdir = 0;
+}
+
+
+
+
+
+
+
+function touchstart(event)
+{
+    // canvas-Position ermitteln zwecks Verschiebung
+    
+    var canvasRect = canvas.getBoundingClientRect();
+    xoff = canvasRect.left;
+    yoff = canvasRect.top;
+    
+    // Touch-Events verarbeiten
+    
+    for(var i=0; i<event.changedTouches.length; i++)
+    {
+        var touch = event.changedTouches[i];
+        
+        if (touch.clientX - xoff < SCR_W / 2)
+            moveLeft();
+            
+        if (touch.clientX - xoff > SCR_W / 2)
+            moveRight();
+    }
+    
+    event.preventDefault();
+}
+
+function touchmove(event)
+{
+    touchstart(event);
+}
+
+function touchend(event)
+{
+    for(var i=0; i<event.changedTouches.length; i++)
+    {
+        var touch = event.changedTouches[i];
+        
+        if (touch.clientX - xoff < SCR_W / 2)
+            stopLeft();
+            
+        if (touch.clientX - xoff > SCR_W / 2)
+            stopRight();
+    }
+    
+    event.preventDefault();
+}
+
+
+setInterval(function(){ update(); }, 25);   // die Funktion "update" wird alle 25 Millisekunden aufgerufen
+
+</script>
+
+
+
+
+
+
+</body>
+</html>
